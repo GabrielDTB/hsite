@@ -32,6 +32,7 @@
                 cabal = "latest";
                 hlint = "latest";
                 haskell-language-server = "latest";
+                ormolu = "latest";
               };
             };
           })

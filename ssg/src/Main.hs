@@ -3,9 +3,9 @@
 import Control.Monad (forM_)
 import Data.List (isPrefixOf, isSuffixOf)
 import Data.Maybe (fromMaybe)
-import Hakyll
 import qualified Data.Text as T
 import qualified Data.Text.Slugger as Slugger
+import Hakyll
 import System.FilePath (takeFileName)
 import Text.Pandoc
   ( Extension (Ext_fenced_code_attributes, Ext_footnotes, Ext_gfm_auto_identifiers, Ext_implicit_header_references, Ext_smart),
@@ -50,19 +50,19 @@ myFeedRoot = mySiteRoot
 config :: Configuration
 config =
   defaultConfiguration
-    { destinationDirectory = "dist"
-    , ignoreFile = ignoreFile'
-    , previewHost = "127.0.0.1"
-    , previewPort = 8000
-    , providerDirectory = "src"
-    , storeDirectory = "ssg/_cache"
-    , tmpDirectory = "ssg/_tmp"
+    { destinationDirectory = "dist",
+      ignoreFile = ignoreFile',
+      previewHost = "127.0.0.1",
+      previewPort = 8000,
+      providerDirectory = "src",
+      storeDirectory = "ssg/_cache",
+      tmpDirectory = "ssg/_tmp"
     }
   where
     ignoreFile' path
-      | "."    `isPrefixOf` fileName = False
-      | "#"    `isPrefixOf` fileName = True
-      | "~"    `isSuffixOf` fileName = True
+      | "." `isPrefixOf` fileName = False
+      | "#" `isPrefixOf` fileName = True
+      | "~" `isSuffixOf` fileName = True
       | ".swp" `isSuffixOf` fileName = True
       | otherwise = False
       where
@@ -74,13 +74,13 @@ config =
 main :: IO ()
 main = hakyllWith config $ do
   forM_
-    [ "CNAME"
-    , "favicon.ico"
-    , "robots.txt"
-    , "_config.yml"
-    , "images/*"
-    , "js/*"
-    , "fonts/*"
+    [ "CNAME",
+      "favicon.ico",
+      "robots.txt",
+      "_config.yml",
+      "images/*",
+      "js/*",
+      "fonts/*"
     ]
     $ \f -> match f $ do
       route idRoute
@@ -203,11 +203,11 @@ pandocExtensionsCustom :: Extensions
 pandocExtensionsCustom =
   githubMarkdownExtensions
     <> extensionsFromList
-      [ Ext_fenced_code_attributes
-      , Ext_gfm_auto_identifiers
-      , Ext_implicit_header_references
-      , Ext_smart
-      , Ext_footnotes
+      [ Ext_fenced_code_attributes,
+        Ext_gfm_auto_identifiers,
+        Ext_implicit_header_references,
+        Ext_smart,
+        Ext_footnotes
       ]
 
 pandocReaderOpts :: ReaderOptions
@@ -219,8 +219,8 @@ pandocReaderOpts =
 pandocWriterOpts :: WriterOptions
 pandocWriterOpts =
   defaultHakyllWriterOptions
-    { writerExtensions = pandocExtensionsCustom
-    , writerHighlightStyle = Just pandocHighlightStyle
+    { writerExtensions = pandocExtensionsCustom,
+      writerHighlightStyle = Just pandocHighlightStyle
     }
 
 pandocHighlightStyle :: Style
@@ -245,11 +245,11 @@ feedCompiler renderer =
 feedConfiguration :: FeedConfiguration
 feedConfiguration =
   FeedConfiguration
-    { feedTitle = myFeedTitle
-    , feedDescription = myFeedDescription
-    , feedAuthorName = myFeedAuthorName
-    , feedAuthorEmail = myFeedAuthorEmail
-    , feedRoot = myFeedRoot
+    { feedTitle = myFeedTitle,
+      feedDescription = myFeedDescription,
+      feedAuthorName = myFeedAuthorName,
+      feedAuthorEmail = myFeedAuthorEmail,
+      feedRoot = myFeedRoot
     }
 
 --------------------------------------------------------------------------------
