@@ -29,16 +29,16 @@
           (final: prev: {
             hakyllProject = final.haskell-nix.project' {
               src = ./ssg;
-              compiler-nix-name = "ghc948";
+              compiler-nix-name = "ghc9122";
               modules = [ { doHaddock = false; } ];
               shell.buildInputs = [
                 hakyll-site
               ];
               shell.tools = {
-                cabal = "latest";
-                hlint = "latest";
-                haskell-language-server = "latest";
-                ormolu = "latest";
+                cabal = { };
+                hlint = { };
+                haskell-language-server = { };
+                fourmolu = { };
               };
             };
           })

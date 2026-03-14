@@ -3,15 +3,15 @@
 import Control.Monad (forM_)
 import Data.List (isPrefixOf, isSuffixOf)
 import Data.Maybe (fromMaybe)
-import qualified Data.Text as T
-import qualified Data.Text.Slugger as Slugger
+import Data.Text qualified as T
+import Data.Text.Slugger qualified as Slugger
 import Hakyll
 import System.FilePath (takeFileName)
 import Text.Pandoc
   ( Extension (Ext_fenced_code_attributes, Ext_footnotes, Ext_gfm_auto_identifiers, Ext_implicit_header_references, Ext_smart),
     Extensions,
     ReaderOptions,
-    WriterOptions (writerHighlightStyle),
+    WriterOptions,
     extensionsFromList,
     githubMarkdownExtensions,
     readerExtensions,
@@ -219,8 +219,7 @@ pandocReaderOpts =
 pandocWriterOpts :: WriterOptions
 pandocWriterOpts =
   defaultHakyllWriterOptions
-    { writerExtensions = pandocExtensionsCustom,
-      writerHighlightStyle = Just pandocHighlightStyle
+    { writerExtensions = pandocExtensionsCustom
     }
 
 pandocHighlightStyle :: Style
