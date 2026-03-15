@@ -90,10 +90,11 @@ main = hakyllWith config $ do
     route idRoute
     compile compressCssCompiler
 
+  -- Main post compilation: produces /posts/YYYY/title-slug.html
   match "posts/*" $ do
     let ctx = constField "type" "article" <> postCtx
 
-    route $ metadataRoute titleRoute
+    route $ metadataRoute postRoute
     compile $
       pandocCompilerCustom
         >>= loadAndApplyTemplate "templates/post.html" ctx
@@ -103,7 +104,7 @@ main = hakyllWith config $ do
   match "index.html" $ do
     route idRoute
     compile $ do
-      posts <- recentFirst =<< loadAll "posts/*"
+      posts <- recentFirst =<< loadAll ("posts/*" .&&. hasNoVersion)
 
       let indexCtx =
             listField "posts" postCtx (return posts)
@@ -122,7 +123,7 @@ main = hakyllWith config $ do
   create ["sitemap.xml"] $ do
     route idRoute
     compile $ do
-      posts <- recentFirst =<< loadAll "posts/*"
+      posts <- recentFirst =<< loadAll ("posts/*" .&&. hasNoVersion)
 
       let pages = posts
           sitemapCtx =
@@ -166,12 +167,37 @@ postCtx =
   constField "root" mySiteRoot
     <> constField "feedTitle" myFeedTitle
     <> constField "siteName" mySiteName
-    <> dateField "date" "%Y-%m-%d"
+    <> titleCtx
+    <> descriptionCtx
+    <> publishedDateField "date" "%Y-%m-%d"
     <> defaultContext
 
+-- | Extract the title from aliases[0]
 titleCtx :: Context String
 titleCtx =
-  field "title" updatedTitle
+  field "title" $ \item -> do
+    metadata <- getMetadata (itemIdentifier item)
+    case lookupStringList "aliases" metadata of
+      Just (t : _) -> return $ replaceAmp t
+      _ -> fail "no title (aliases[0]) found"
+
+-- | Extract description from metadata
+descriptionCtx :: Context String
+descriptionCtx =
+  field "desc" $ \item -> do
+    metadata <- getMetadata (itemIdentifier item)
+    case lookupString "description" metadata of
+      Just d -> return d
+      Nothing -> fail "no description found"
+
+-- | Date field that reads from "published" instead of the filename
+publishedDateField :: String -> String -> Context a
+publishedDateField key fmt =
+  field key $ \item -> do
+    metadata <- getMetadata (itemIdentifier item)
+    case lookupString "published" metadata of
+      Just d -> return d
+      Nothing -> fail "no published date found"
 
 --------------------------------------------------------------------------------
 -- TITLE HELPERS
@@ -179,18 +205,6 @@ titleCtx =
 replaceAmp :: String -> String
 replaceAmp =
   replaceAll "&" (const "&amp;")
-
-replaceTitleAmp :: Metadata -> String
-replaceTitleAmp =
-  replaceAmp . safeTitle
-
-safeTitle :: Metadata -> String
-safeTitle =
-  fromMaybe "no title" . lookupString "title"
-
-updatedTitle :: Item a -> Compiler String
-updatedTitle =
-  fmap replaceTitleAmp . getMetadata . itemIdentifier
 
 --------------------------------------------------------------------------------
 -- PANDOC
@@ -239,7 +253,7 @@ feedCompiler :: FeedRenderer -> Compiler (Item String)
 feedCompiler renderer =
   renderer feedConfiguration feedCtx
     =<< recentFirst
-    =<< loadAllSnapshots "posts/*" "content"
+    =<< loadAllSnapshots ("posts/*" .&&. hasNoVersion) "content"
 
 feedConfiguration :: FeedConfiguration
 feedConfiguration =
@@ -252,12 +266,19 @@ feedConfiguration =
     }
 
 --------------------------------------------------------------------------------
--- CUSTOM ROUTE
+-- CUSTOM ROUTES
 
-fileNameFromTitle :: Metadata -> FilePath
-fileNameFromTitle =
-  T.unpack . (`T.append` ".html") . Slugger.toSlug . T.pack . safeTitle
+-- | Route a post to /posts/YYYY/title-slug.html
+-- Reads year from "published" and title from aliases[0]
+postRoute :: Metadata -> Routes
+postRoute metadata =
+  let year = takeYear $ fromMaybe "0000" $ lookupString "published" metadata
+      title = case lookupStringList "aliases" metadata of
+        Just (t : _) -> t
+        _ -> "untitled"
+      slug = T.unpack $ Slugger.toSlug $ T.pack title
+   in constRoute $ "posts/" <> year <> "/" <> slug <> ".html"
 
-titleRoute :: Metadata -> Routes
-titleRoute =
-  constRoute . fileNameFromTitle
+-- | Extract the 4-digit year from a date string like "2026-03-14"
+takeYear :: String -> String
+takeYear = take 4
