@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 import Control.Monad (forM_)
-import Data.List (isPrefixOf, isSuffixOf)
+import Data.List (isInfixOf, isPrefixOf, isSuffixOf)
 import Data.Maybe (fromMaybe)
 import Data.Text qualified as T
 import Data.Text.Slugger qualified as Slugger
@@ -100,6 +100,7 @@ main = hakyllWith config $ do
         >>= loadAndApplyTemplate "templates/post.html" ctx
         >>= saveSnapshot "content"
         >>= loadAndApplyTemplate "templates/default.html" ctx
+        >>= withItemBody (return . compressHtml)
 
   match "index.html" $ do
     route idRoute
@@ -116,6 +117,7 @@ main = hakyllWith config $ do
       getResourceBody
         >>= applyAsTemplate indexCtx
         >>= loadAndApplyTemplate "templates/default.html" indexCtx
+        >>= withItemBody (return . compressHtml)
 
   match "templates/*" $
     compile templateBodyCompiler
@@ -133,14 +135,19 @@ main = hakyllWith config $ do
 
       makeItem ("" :: String)
         >>= loadAndApplyTemplate "templates/sitemap.xml" sitemapCtx
+        >>= withItemBody (return . compressHtml)
 
   create ["rss.xml"] $ do
     route idRoute
-    compile (feedCompiler renderRss)
+    compile $
+      feedCompiler renderRss
+        >>= withItemBody (return . compressHtml)
 
   create ["atom.xml"] $ do
     route idRoute
-    compile (feedCompiler renderAtom)
+    compile $
+      feedCompiler renderAtom
+        >>= withItemBody (return . compressHtml)
 
   create ["css/code.css"] $ do
     route idRoute
@@ -152,6 +159,21 @@ main = hakyllWith config $ do
 makeStyle :: Style -> Compiler (Item String)
 makeStyle =
   makeItem . compressCss . styleToCss
+
+-- | Minify HTML: strip leading whitespace, remove blank lines, and join all
+-- lines with a space — except inside <pre> blocks where newlines are
+-- significant for rendering.
+compressHtml :: String -> String
+compressHtml html = go False processed
+  where
+    processed = filter (not . null) . map (dropWhile (`elem` [' ', '\t'])) . lines $ html
+    go _ [] = ""
+    go inPre (l : ls)
+      | inPre && "</pre>" `isInfixOf` l = l ++ "\n" ++ go False ls
+      | inPre = l ++ "\n" ++ go True ls
+      | "<pre" `isInfixOf` l = l ++ "\n" ++ go (not $ "</pre>" `isInfixOf` l) ls
+      | null ls = l
+      | otherwise = l ++ " " ++ go False ls
 
 --------------------------------------------------------------------------------
 -- CONTEXT
